@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import re
 import numpy as np
- from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression
 
 #title, year, genre, runtime, director, actor, budget, revenue,
 
@@ -61,11 +61,11 @@ def readDataset4():
 if __name__ == '__main__':
     ds1 = readDataset1()
     ds2 = readDataset3()
-    ds3 = readDataset4()
+    #ds3 = readDataset4()
     # readDataset5()
     # readDataset6()
 
-    data = pd.concat([ds1, ds2, ds3])
+    data = pd.concat([ds1, ds2])
     
 
     data['year'] = pd.to_numeric(data['year'], errors = 'coerce')
@@ -111,7 +111,8 @@ if __name__ == '__main__':
     dataFiltered['budget'].replace( 0, np.nan, inplace = True)
     dataFiltered['revenue'].replace(0, np.nan, inplace = True)
 
-    #dataFiltered['budget']= dataFiltered['budget'].fillna(dataFiltered['budget'].median())
+    dataFiltered['revenue']= dataFiltered['revenue'].fillna(dataFiltered['revenue'].median())
+    dataFiltered['budget']= dataFiltered['budget'].fillna(dataFiltered['budget'].median())
     # print(count)
 
 
@@ -139,29 +140,11 @@ if __name__ == '__main__':
     
     dataFiltered.loc[dataFiltered.budget.isnull(), 'budget'] = y_pred
     
-    cols = ["runtime", "revenue", "budget"]
+  
+    dataFiltered['roi']=((dataFiltered['revenue']- dataFiltered['budget']) / dataFiltered['budget'])*100
     
-    df = dataFiltered[cols]
     
-    test_df = df[df["revenue"].isnull()]
-    
-    df = df.dropna()
-    
-    y_train = df["revenue"]
-    X_train = df.drop("revenue", axis=1)
-    X_test = test_df.drop("revenue", axis=1)
     
    
-    lr = LinearRegression()
-    lr.fit(X_train, y_train)
-    y_pred = lr.predict(X_test)
-    
-    dataFiltered.loc[dataFiltered.revenue.isnull(), 'revenue'] = y_pred
-    
-    '''from sklearn.model_selection import KFold
-    kf = KFold(n_splits=10, random_state = 42)
-    for train_index, test_index in kf.split(df_filter):
-    df_test = df_filter.iloc[test_index]
-    df_train = df_filter.iloc[train_index]'''
 
     
