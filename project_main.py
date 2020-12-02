@@ -110,11 +110,11 @@ if __name__ == '__main__':
 
     print(count)
 
+
     
 
-
-    compression_opts = dict(method='zip',
-                            archive_name = 'out.csv')  
-    data.to_csv('out.zip', index = False,
-              compression = compression_opts)
+    # compression_opts = dict(method='zip',
+    #                         archive_name = 'out.csv')  
+    # data.to_csv('out.zip', index = False,
+    #           compression = compression_opts)
 
