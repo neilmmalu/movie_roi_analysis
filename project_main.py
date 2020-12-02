@@ -2,6 +2,7 @@ import pandas as pd
 import json
 import re
 import numpy as np
+ from sklearn.linear_model import LinearRegression
 
 #title, year, genre, runtime, director, actor, budget, revenue,
 
@@ -66,10 +67,6 @@ if __name__ == '__main__':
 
     data = pd.concat([ds1, ds2, ds3])
     
-    
-
-    
-
 
     data['year'] = pd.to_numeric(data['year'], errors = 'coerce')
     
@@ -111,16 +108,60 @@ if __name__ == '__main__':
     #     if j['budget'] == True and j['revenue'] == True:
     #         data.drop(i, inplace = True)
 
-    
+    dataFiltered['budget'].replace( 0, np.nan, inplace = True)
+    dataFiltered['revenue'].replace(0, np.nan, inplace = True)
 
-
+    #dataFiltered['budget']= dataFiltered['budget'].fillna(dataFiltered['budget'].median())
     # print(count)
 
 
     print(dataFiltered.info())
 
-    # compression_opts = dict(method='zip',
-    #                         archive_name = 'out.csv')  
-    # data.to_csv('out.zip', index = False,
-    #           compression = compression_opts)
+   # compression_opts = dict(method='zip',archive_name = 'out.csv')  
+   # dataFiltered.to_csv('out.zip', index = False,compression = compression_opts)
+    
+    cols = ["runtime", "budget","revenue"]
+    
+    df = dataFiltered[cols]
+    
+    test_df = df[df["budget"].isnull()]
+    
+    df = df.dropna()
+    
+    y_train = df["budget"]
+    X_train = df.drop("budget", axis=1)
+    X_test = test_df.drop("budget", axis=1)
+    
+   
+    lr = LinearRegression()
+    lr.fit(X_train, y_train)
+    y_pred = lr.predict(X_test)
+    
+    dataFiltered.loc[dataFiltered.budget.isnull(), 'budget'] = y_pred
+    
+    cols = ["runtime", "revenue", "budget"]
+    
+    df = dataFiltered[cols]
+    
+    test_df = df[df["revenue"].isnull()]
+    
+    df = df.dropna()
+    
+    y_train = df["revenue"]
+    X_train = df.drop("revenue", axis=1)
+    X_test = test_df.drop("revenue", axis=1)
+    
+   
+    lr = LinearRegression()
+    lr.fit(X_train, y_train)
+    y_pred = lr.predict(X_test)
+    
+    dataFiltered.loc[dataFiltered.revenue.isnull(), 'revenue'] = y_pred
+    
+    '''from sklearn.model_selection import KFold
+    kf = KFold(n_splits=10, random_state = 42)
+    for train_index, test_index in kf.split(df_filter):
+    df_test = df_filter.iloc[test_index]
+    df_train = df_filter.iloc[train_index]'''
 
+    
