@@ -4,7 +4,7 @@ import re
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-#title, year, genre, runtime, director, actor, budget, revenue,
+#id, title, year, genre, runtime, director, actor, budget, revenue, ratings, num_votes
 
 def clean_alt_list(list_):
     list_ = list_.replace(', ', '","')
@@ -15,13 +15,19 @@ def clean_alt_list(list_):
 
 
 def readDataset1():
-    col_list = ['title', 'year', 'genre', 'duration', 'director', 'actors', 'budget', 'worlwide_gross_income', 'country', 'language']
+    col_list = ['imdb_title_id','title', 'year', 'genre', 'duration', 'director', 'actors', 'budget', 'worlwide_gross_income', 'country', 'language', 'avg_vote']
     ds1 = pd.read_csv('dataset1/IMDb movies.csv', usecols=col_list)
+
+    ds2 = pd.read_csv('dataset1/IMDb ratings.csv', usecols=["total_votes"])
+
+    ds1['total_votes'] = ds2['total_votes']
+    print(ds1.info())
+    print(ds2.info())
 
     ds1 = ds1[(ds1['country'] == 'USA') | (ds1['language'] == 'English') | (ds1['country'] == 'UK')]
 
-
-    ds1.rename(columns= {'duration': 'runtime', 'actors': 'actor', 'worlwide_gross_income': 'revenue'}, inplace = True)
+    
+    ds1.rename(columns= {'imdb_title_id': 'id','duration': 'runtime', 'actors': 'actor', 'worlwide_gross_income': 'revenue', 'avg_vote': 'ratings', 'total_votes': 'num_votes'}, inplace = True)
     # print(ds1)
 
     del ds1['country']
@@ -29,26 +35,17 @@ def readDataset1():
 
     return ds1
 
-def readDataset3():
-    col_list = ['name', 'year', 'genre', 'runtime', 'director', 'star', 'budget', 'gross', 'country']
-    ds3 = pd.read_csv('dataset3.csv', usecols=col_list, encoding='latin-1')
-
-    ds3 = ds3[(ds3['country'] == 'USA') | (ds3['country'] == 'UK')]
-
-    ds3.rename(columns= {'name': 'title', 'star': 'actor', 'gross': 'revenue'}, inplace = True)
-    # print(ds3)
-
-    del ds3['country']
-    return ds3
 
 def readDataset4():
-    col_list = ['movie_title', 'title_year', 'genres', 'duration', 'director_name', 'actor_1_name', 'budget', 'gross', 'country', 'language']
+    col_list = ['movie_imdb_link','movie_title', 'title_year', 'genres', 'duration', 'director_name', 'actor_1_name', 'budget', 'gross', 'country', 'language', 'imdb_score', 'num_voted_users']
 
     ds4 = pd.read_csv('dataset4.csv', usecols=col_list, encoding='latin-1')
 
     ds4 = ds4[(ds4['country'] == 'USA') | (ds4['language'] == 'English') | (ds4['country'] == 'UK')]
 
-    ds4.rename(columns= {'movie_title': 'title', 'title_year': 'year', 'genres': 'genre', 'duration': 'runtime', 'director_name': 'director', 'actor_1_name': 'actor', 'gross': 'revenue'}, inplace = True)
+    ds4['movie_imdb_link'] = ds4['movie_imdb_link'].str.split('/').str[4]
+
+    ds4.rename(columns= {'movie_imdb_link': 'id','movie_title': 'title', 'title_year': 'year', 'genres': 'genre', 'duration': 'runtime', 'director_name': 'director', 'actor_1_name': 'actor', 'gross': 'revenue', 'imdb_score': 'ratings', 'num_voted_users': 'num_votes'}, inplace = True)
     # print(ds4)
 
     del ds4['country']
@@ -60,12 +57,12 @@ def readDataset4():
 
 if __name__ == '__main__':
     ds1 = readDataset1()
-    ds2 = readDataset3()
-    #ds3 = readDataset4()
+    # ds2 = readDataset3()
+    ds3 = readDataset4()
     # readDataset5()
     # readDataset6()
 
-    data = pd.concat([ds1, ds2])
+    data = pd.concat([ds1, ds3])
     
 
     data['year'] = pd.to_numeric(data['year'], errors = 'coerce')
@@ -84,15 +81,13 @@ if __name__ == '__main__':
     data['revenue'] = data['revenue'].str.replace('$', '')
     data['revenue'] = data['revenue'].str.replace(r'[^\d]+', '')
 
-    
-
     data['budget'] = pd.to_numeric(data['budget'], errors = 'coerce')
     data['revenue'] = pd.to_numeric(data['revenue'], errors = 'coerce')
 
     data['budget'].replace(np.nan, 0, inplace = True)
     data['revenue'].replace(np.nan, 0, inplace = True)
 
-    data = data.drop_duplicates(subset = 'title')
+    data = data.drop_duplicates(subset = 'id')
 
     data = data[data['year'] > 1970]
 
@@ -103,25 +98,16 @@ if __name__ == '__main__':
 
     dataFiltered = data[(data['budget'] != 0) | (data['revenue'] != 0)]
 
-    # count = 0
-    # for i, j in data2.iterrows():
-    #     if j['budget'] == True and j['revenue'] == True:
-    #         data.drop(i, inplace = True)
-
     dataFiltered['budget'].replace( 0, np.nan, inplace = True)
     dataFiltered['revenue'].replace(0, np.nan, inplace = True)
 
+    print(dataFiltered.corr())
+
     dataFiltered['revenue']= dataFiltered['revenue'].fillna(dataFiltered['revenue'].median())
-    dataFiltered['budget']= dataFiltered['budget'].fillna(dataFiltered['budget'].median())
     # print(count)
 
-
-    print(dataFiltered.info())
-
-   # compression_opts = dict(method='zip',archive_name = 'out.csv')  
-   # dataFiltered.to_csv('out.zip', index = False,compression = compression_opts)
     
-    cols = ["runtime", "budget","revenue"]
+    cols = ["runtime", "budget", "revenue", "num_votes"]
     
     df = dataFiltered[cols]
     
@@ -137,11 +123,18 @@ if __name__ == '__main__':
     lr = LinearRegression()
     lr.fit(X_train, y_train)
     y_pred = lr.predict(X_test)
+
+    y_pred_rounded = [round(num) for num in y_pred]
     
-    dataFiltered.loc[dataFiltered.budget.isnull(), 'budget'] = y_pred
+    dataFiltered.loc[dataFiltered.budget.isnull(), 'budget'] = y_pred_rounded
     
   
     dataFiltered['roi']=((dataFiltered['revenue']- dataFiltered['budget']) / dataFiltered['budget'])*100
+
+
+    print(dataFiltered.info())
+
+    dataFiltered.to_csv('out.csv', index = False)
     
     
     
