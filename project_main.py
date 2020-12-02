@@ -92,8 +92,8 @@ if __name__ == '__main__':
     data['budget'] = pd.to_numeric(data['budget'], errors = 'coerce')
     data['revenue'] = pd.to_numeric(data['revenue'], errors = 'coerce')
 
-    data['budget'].replace(0, np.nan, inplace = True)
-    data['revenue'].replace(0, np.nan, inplace = True)
+    data['budget'].replace(np.nan, 0, inplace = True)
+    data['revenue'].replace(np.nan, 0, inplace = True)
 
     data = data.drop_duplicates(subset = 'title')
 
@@ -103,15 +103,21 @@ if __name__ == '__main__':
 
     data2 = pd.isnull(data)
 
-    count = 0
-    for i, j in data2.iterrows():
-        if j['budget'] == True or j['revenue'] == True:
-            count += 1
 
-    print(count)
+    dataFiltered = data[(data['budget'] != 0) | (data['revenue'] != 0)]
 
+    # count = 0
+    # for i, j in data2.iterrows():
+    #     if j['budget'] == True and j['revenue'] == True:
+    #         data.drop(i, inplace = True)
 
     
+
+
+    # print(count)
+
+
+    print(dataFiltered.info())
 
     # compression_opts = dict(method='zip',
     #                         archive_name = 'out.csv')  
