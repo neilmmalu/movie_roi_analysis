@@ -1,6 +1,4 @@
 import pandas as pd
-import json
-import re
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
@@ -88,18 +86,30 @@ if __name__ == '__main__':
     data['revenue'].replace(np.nan, 0, inplace = True)
 
     data = data.drop_duplicates(subset = 'id')
+    
+    df = data.copy()
+    
+    import matplotlib.pyplot as plt
+    
+    df = df.sort_values(by=['year'])
+    
+    df['year'].value_counts().sort_index().plot(kind='line')
+    
 
-    data = data[data['year'] > 1970]
-
-    print(data)
+    
+    data = data[data['year'] > 1930]
 
     data2 = pd.isnull(data)
 
 
     dataFiltered = data[(data['budget'] != 0) | (data['revenue'] != 0)]
+    dataFiltered = dataFiltered[(dataFiltered['budget'] > 1000000) | (dataFiltered['budget'] == 0)]
+    dataFiltered = dataFiltered[(dataFiltered['revenue'] > 1000000) | (dataFiltered['revenue'] == 0)]
 
     dataFiltered['budget'].replace( 0, np.nan, inplace = True)
     dataFiltered['revenue'].replace(0, np.nan, inplace = True)
+    
+    
 
     print(dataFiltered.corr())
 
@@ -129,15 +139,74 @@ if __name__ == '__main__':
     dataFiltered.loc[dataFiltered.budget.isnull(), 'budget'] = y_pred_rounded
     
   
-    dataFiltered['roi']=((dataFiltered['revenue']- dataFiltered['budget']) / dataFiltered['budget'])*100
+    dataFiltered['roi']= dataFiltered['revenue']/dataFiltered['budget']
+    
+    
+    y = dataFiltered['roi']
+    dataFiltered = dataFiltered[y.between(y.quantile(.05), y.quantile(.95))]
 
 
     print(dataFiltered.info())
 
-    dataFiltered.to_csv('out.csv', index = False)
+    #dataFiltered.to_csv('out.csv', index = False)
     
+    genre = {}
+    for i, j in dataFiltered.iterrows():
+        movieGenres = j['genre'].split(',')
+        movieGenres = [gen.strip() for gen in movieGenres]
+#        print(movieGenres)
+        for gen in movieGenres:
+            if gen in genre:
+                genre[gen][0] += j['roi']
+                genre[gen][1] += 1
+            else:
+                genre[gen] = []
+                genre[gen].append(j['roi'])
+                genre[gen].append(1)
+        
+    genre['Music'][0] += genre['Musical'][0]
+    genre['Music'][1] += genre['Musical'][1]
     
+    genre.pop('Musical')
     
-   
+    genres = []
+    avg_rois = []
+    for key, value in genre.items():
+        genres.append(key)
+        avg_rois.append(value[0]/value[1])
+        
+    plt.figure(figsize=(20, 10))
+    plt.bar(genres, avg_rois)
+    plt.show()
 
+    directors = {}
+    for i, j in dataFiltered.iterrows():
+        movieDirectors = j['director'].split(',')
+        movieDirectors = [director.strip() for director in movieDirectors]
+#        print(movieGenres)
+        for director in movieDirectors:
+            if director in directors:
+                directors[director][0] += j['roi']
+                directors[director][1] += 1
+                directors[director][2] += j['budget']
+            else:
+                directors[director] = []
+                directors[director].append(j['roi'])
+                directors[director].append(1)
+                directors[director].append(j['budget'])
+                
     
+    for key, value in list(directors.items()):
+        if value[1] < 2:
+            del directors[key]
+            
+    for key, value in directors.items():
+        l = [value[0]/value[1], value[2]]
+        directors[key] = l
+        
+    directors = dict(sorted(directors.items(), key=lambda item: item[1], reverse=True))
+    
+    iterator = iter(directors.items())
+    
+    for i in range(29):
+        print(next(iterator))
