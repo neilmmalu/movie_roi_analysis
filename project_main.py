@@ -17,7 +17,7 @@ def readDataset1():
     col_list = ['title', 'year', 'genre', 'duration', 'director', 'actors', 'budget', 'worlwide_gross_income', 'country', 'language']
     ds1 = pd.read_csv('dataset1/IMDb movies.csv', usecols=col_list)
 
-    ds1 = ds1[ds1['country'] == 'USA' or ds1['language'] == 'English' or ds1['country'] == 'UK']
+    ds1 = ds1[(ds1['country'] == 'USA') | (ds1['language'] == 'English') | (ds1['country'] == 'UK')]
 
 
     ds1.rename(columns= {'duration': 'runtime', 'actors': 'actor', 'worlwide_gross_income': 'revenue'}, inplace = True)
@@ -32,7 +32,7 @@ def readDataset3():
     col_list = ['name', 'year', 'genre', 'runtime', 'director', 'star', 'budget', 'gross', 'country']
     ds3 = pd.read_csv('dataset3.csv', usecols=col_list, encoding='latin-1')
 
-    ds3 = ds3[ds3['country'] == 'USA' or ds3['country'] == 'UK']
+    ds3 = ds3[(ds3['country'] == 'USA') | (ds3['country'] == 'UK')]
 
     ds3.rename(columns= {'name': 'title', 'star': 'actor', 'gross': 'revenue'}, inplace = True)
     # print(ds3)
@@ -45,7 +45,7 @@ def readDataset4():
 
     ds4 = pd.read_csv('dataset4.csv', usecols=col_list, encoding='latin-1')
 
-    ds4 = ds4[ds4['country'] == 'USA' or ds4['language'] == 'English' or ds4['country'] == 'UK']
+    ds4 = ds4[(ds4['country'] == 'USA') | (ds4['language'] == 'English') | (ds4['country'] == 'UK')]
 
     ds4.rename(columns= {'movie_title': 'title', 'title_year': 'year', 'genres': 'genre', 'duration': 'runtime', 'director_name': 'director', 'actor_1_name': 'actor', 'gross': 'revenue'}, inplace = True)
     # print(ds4)
@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
     print(count)
 
-
+    
 
 
     compression_opts = dict(method='zip',
