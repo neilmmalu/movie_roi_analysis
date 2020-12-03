@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
 
 #id, title, year, genre, runtime, director, actor, budget, revenue, ratings, num_votes
 
@@ -87,17 +88,16 @@ if __name__ == '__main__':
 
     data = data.drop_duplicates(subset = 'id')
     
-    df = data.copy()
+#    df = data.copy()
+#    
+#    
+#    df = df.sort_values(by=['year'])
     
-    import matplotlib.pyplot as plt
-    
-    df = df.sort_values(by=['year'])
-    
-    df['year'].value_counts().sort_index().plot(kind='line')
+#    df['year'].value_counts().sort_index().plot(kind='line')
     
 
     
-    data = data[data['year'] > 1930]
+    data = data[data['year'] > 1950]
 
     data2 = pd.isnull(data)
 
@@ -108,7 +108,6 @@ if __name__ == '__main__':
 
     dataFiltered['budget'].replace( 0, np.nan, inplace = True)
     dataFiltered['revenue'].replace(0, np.nan, inplace = True)
-    
     
 
     print(dataFiltered.corr())
@@ -149,6 +148,9 @@ if __name__ == '__main__':
     print(dataFiltered.info())
 
     #dataFiltered.to_csv('out.csv', index = False)
+
+
+#*************************Genres***************************************
     
     genre = {}
     for i, j in dataFiltered.iterrows():
@@ -175,10 +177,31 @@ if __name__ == '__main__':
         genres.append(key)
         avg_rois.append(value[0]/value[1])
         
-    plt.figure(figsize=(20, 10))
-    plt.bar(genres, avg_rois)
-    plt.show()
-
+#    plt.figure(figsize=(20, 10))
+#    plt.bar(genres, avg_rois)
+#    plt.show()
+        
+        
+    genre_score = []
+    
+    for i, j in dataFiltered.iterrows():
+        movieGenres = j['genre'].split(',')
+        movieGenres = [gen.strip() for gen in movieGenres]
+        scores = 0
+        count = 0
+        for gen in movieGenres:
+            if gen == 'Musical':
+                roi = genre['Music'][0]
+                count += 1
+            else:
+                roi = genre[gen][0]
+                count += 1
+            scores += roi
+        genre_score.append(scores/(count))
+    
+    dataFiltered['genre_score'] = genre_score
+        
+#*************************Directors***************************************
     directors = {}
     for i, j in dataFiltered.iterrows():
         movieDirectors = j['director'].split(',')
@@ -195,10 +218,14 @@ if __name__ == '__main__':
                 directors[director].append(1)
                 directors[director].append(j['budget'])
                 
-    
+# To calculate the directors with multiple movies with highest ROIs
+                
+    scores1 = []
     for key, value in list(directors.items()):
         if value[1] < 2:
-            del directors[key]
+            scores1.append(key)
+            
+    
             
     for key, value in directors.items():
         l = [value[0]/value[1], value[2]]
@@ -208,5 +235,144 @@ if __name__ == '__main__':
     
     iterator = iter(directors.items())
     
+    dirs = []
+    roi = []
+    avg_budget = []
+    
+    
     for i in range(29):
-        print(next(iterator))
+        director, l = next(iterator)
+        dirs.append(director)
+        roi.append(l[0])
+        avg_budget.append(l[1])
+    
+    
+    
+#    plt.figure(figsize=(20, 10))
+#    plt.scatter(avg_budget, roi)
+#    
+#    for i, d in enumerate(dirs):
+#        plt.annotate(d, (avg_budget[i], roi[i]))
+        
+    #director_score = roi/budget
+    
+    director_score = []
+    
+    for i, j in dataFiltered.iterrows():
+        movieDirectors = j['director'].split(',')
+        movieDirectors = [director.strip() for director in movieDirectors]
+        scores = 0
+        count = 0
+        for director in movieDirectors:
+            if director in scores1:
+                score = 0
+            else:
+                roi = directors[director][0]
+                budget = directors[director][1]/1000000
+                score = roi/budget
+            count += 1
+            scores += score
+        director_score.append(scores/count)
+    
+    dataFiltered['director_score'] = director_score
+
+
+#*************************Actors***************************************  
+    
+    dataFiltered = dataFiltered.drop(79861)
+    dataFiltered = dataFiltered.drop(82493)  
+    
+  
+    
+    actors = {}
+    for i, j in dataFiltered.iterrows():
+        movieActors = j['actor'].split(',')
+        movieActors = [actor.strip() for actor in movieActors]
+        actor = movieActors[0]
+        if actor in actors:
+            actors[actor][0] += j['roi']
+            actors[actor][1] += 1
+            actors[actor][2] += j['budget']
+        else:
+            actors[actor] = []
+            actors[actor].append(j['roi'])
+            actors[actor].append(1)
+            actors[actor].append(j['budget'])
+            
+    # To calculate the actors with multiple movies with highest ROIs
+        
+    scores10 = []
+    for key, value in list(actors.items()):
+        if value[1] < 10:
+            scores10.append(key)
+            
+    for key, value in actors.items():
+        l = [value[0]/value[1], value[2]]
+        actors[key] = l
+        
+    actors = dict(sorted(actors.items(), key=lambda item: item[1], reverse=True))
+    
+    iterator = iter(actors.items())
+    
+    acts = []
+    roi = []
+    avg_budget = []
+    
+    
+    for i in range(29):
+        actor, l = next(iterator)
+        acts.append(actor)
+        roi.append(l[0])
+        avg_budget.append(l[1])
+
+#    plt.figure(figsize=(20, 10))
+#    plt.scatter(avg_budget, roi)
+#    
+#    for i, d in enumerate(acts):
+#        plt.annotate(d, (avg_budget[i], roi[i]))
+    
+    actor_scores = []
+    
+    for i, j in dataFiltered.iterrows():
+        movieActors = j['actor'].split(',')
+        movieActors = [actor.strip() for actor in movieActors]
+        actor = movieActors[0]
+        if actor in scores10:
+            score = 0
+        else:
+            roi = actors[actor][0]
+            budget = actors[actor][1]/1000000
+            score = roi/budget
+            
+        actor_scores.append(score)
+    dataFiltered['actor_score'] = actor_scores
+
+#*************************ratings***************************************
+    
+#    ratings = {}
+#    for i, j in dataFiltered.iterrows():
+#        r = j['ratings']
+#        if r in ratings:
+#            ratings[r][0] += j['roi']
+#            ratings[r][1] += 1
+#        else:
+#            ratings[r] = []
+#            ratings[r].append(j['roi'])
+#            ratings[r].append(1)
+#           
+#        rating = []
+#        r_roi = []
+#        for k,v in ratings.items():
+#            rating.append(k)
+#            r_roi.append(v[0]/v[1])
+#        
+#        
+#        plt.figure(figsize=(20, 10))
+#        plt.scatter(rating, r_roi)
+        
+    
+#*************************Final Dataset for model***************************************  
+    
+    ds = dataFiltered[['ratings','budget','revenue','roi','genre_score','director_score',
+                   'actor_score','runtime','num_votes','year']]
+    
