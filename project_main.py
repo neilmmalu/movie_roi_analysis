@@ -20,9 +20,7 @@ def readDataset1():
     ds2 = pd.read_csv('dataset1/IMDb ratings.csv', usecols=["total_votes"])
 
     ds1['total_votes'] = ds2['total_votes']
-    print(ds1.info())
-    print(ds2.info())
-
+    
     ds1 = ds1[(ds1['country'] == 'USA') | (ds1['language'] == 'English') | (ds1['country'] == 'UK')]
 
     
@@ -110,7 +108,7 @@ if __name__ == '__main__':
     dataFiltered['revenue'].replace(0, np.nan, inplace = True)
     
 
-    print(dataFiltered.corr())
+    #print(dataFiltered.corr())
 
     dataFiltered['revenue']= dataFiltered['revenue'].fillna(dataFiltered['revenue'].median())
     # print(count)
@@ -145,7 +143,7 @@ if __name__ == '__main__':
     dataFiltered = dataFiltered[y.between(y.quantile(.05), y.quantile(.95))]
 
 
-    print(dataFiltered.info())
+    #print(dataFiltered.info())
 
     #dataFiltered.to_csv('out.csv', index = False)
 
@@ -371,8 +369,98 @@ if __name__ == '__main__':
 #        plt.scatter(rating, r_roi)
         
     
-#*************************Final Dataset for model***************************************  
+    #*************************Final Dataset for model***************************************  
     
     ds = dataFiltered[['ratings','budget','revenue','roi','genre_score','director_score',
                    'actor_score','runtime','num_votes','year']]
+    
+    #Split roi into groups 0-1 -> bad(0) & greater than 1- 3 -> OK(1) & greater than 3-8->Good(2) 
+    #& greater than 8 - 13 ->Excellent(3)
+    roi_class = []
+    for i, j in ds.iterrows():
+        if j['roi'] > 0 and j['roi'] <= 1:
+            roi_class.append(0)
+        elif j['roi'] > 1 and j['roi'] <= 3:
+            roi_class.append(1)
+        elif j['roi']>3 and j['roi']<= 8:
+            roi_class.append(2)
+        else:
+            roi_class.append(3)
+            
+    ds['roi_class'] = roi_class
+    del ds['roi']
+    #del ds['budget']
+    del ds['revenue']
+    
+    X = ds.iloc[:, :-1].values
+    y = ds.iloc[:, -1].values
+
+    # Splitting the dataset into the Training set and Test set
+    from sklearn.model_selection import train_test_split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3, random_state = 0)
+    
+    test = X_test
+    
+    # Feature Scaling
+    from sklearn.preprocessing import StandardScaler
+    sc = StandardScaler()
+    X_train = sc.fit_transform(X_train)
+    X_test = sc.transform(X_test)
+
+   # Training the Decision Tree Classification model on the Training set**************
+#    from sklearn.tree import DecisionTreeClassifier
+#    classifier = DecisionTreeClassifier(criterion = 'gini', random_state = 0)
+#    classifier.fit(X_train, y_train)
+#    
+#    y_pred = classifier.predict(X_test)
+    
+    # Training the Random Forest Classification model on the Training set*******************
+    from sklearn.ensemble import RandomForestClassifier
+    classifier = RandomForestClassifier(n_estimators = 10, criterion = 'gini', random_state = 0)
+    classifier.fit(X_train, y_train)
+    
+    
+    
+    # Training the SVM model on the Training set******************************
+#    from sklearn.svm import SVC
+#    classifier = SVC(kernel = 'linear', random_state = 0, decision_function_shape='ovo')
+#    classifier.fit(X_train, y_train)
+    
+    # Training the K-NN model on the Training set*******************************
+#    from sklearn.neighbors import KNeighborsClassifier
+#    classifier = KNeighborsClassifier(n_neighbors = 5, metric = 'minkowski', p = 2)
+#    classifier.fit(X_train, y_train)
+    
+    # Training the Naive Bayes model on the Training set
+#    from sklearn.naive_bayes import GaussianNB
+#    classifier = GaussianNB()
+#    classifier.fit(X_train, y_train)    
+    
+    y_pred = classifier.predict(X_test)
+
+   #Neural Network MLP
+#    from sklearn.neural_network import MLPClassifier
+#    
+#    NN = MLPClassifier(random_state = 1)
+#    NN.fit(X_train, y_train)
+#    
+#    y_pred = NN.predict(X_test)
+    
+    # Making the Confusion Matrix
+    from sklearn.metrics import confusion_matrix, accuracy_score
+    cm = confusion_matrix(y_test, y_pred)
+    accuracy_score(y_test, y_pred)
+    
+    from sklearn import metrics
+    print(metrics.classification_report(y_test,y_pred))
+    
+    f = ds.columns.tolist()
+    f.pop(len(f)-1)
+    imp_features = pd.DataFrame({'Importance':classifier.feature_importances_, 'Features': f })
+    print(imp_features)
+             
+    
+    
+    
+    
     
