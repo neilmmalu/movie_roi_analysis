@@ -479,6 +479,7 @@ if __name__ == '__main__':
 
 #    f = ds.columns.tolist()
 #    f.pop(len(f)-1)
+    
 #    imp_features = pd.DataFrame({'Importance':classifier.feature_importances_, 'Features': f })
 #    print(imp_features)
 
