@@ -13,14 +13,7 @@ from sklearn import metrics
 
 #id, title, year, genre, runtime, director, actor, budget, revenue, ratings, num_votes
 
-def clean_alt_list(list_):
-    list_ = list_.replace(', ', '","')
-    list_ = list_.replace('[', '["')
-    list_ = list_.replace(']', '"]')
-    return list_
-
-#reading Dataset1 - IMDb movies.csv
-    
+#reading Dataset1 - IMDb movies.csv 
 def readDataset1():
     col_list = ['imdb_title_id','title', 'year', 'genre', 'duration', 'director', 'actors', 'budget', 'worlwide_gross_income', 'country', 'language', 'avg_vote']
     ds1 = pd.read_csv('dataset1/IMDb movies.csv', usecols=col_list)
@@ -44,43 +37,45 @@ def readDataset1():
 
 #reading Dataset4 - dataset4.csv
 
-def readDataset4():
+def readDataset2():
     col_list = ['movie_imdb_link','movie_title', 'title_year', 'genres', 'duration', 'director_name', 'actor_1_name', 'budget', 'gross', 'country', 'language', 'imdb_score', 'num_voted_users']
 
-    ds4 = pd.read_csv('dataset4.csv', usecols=col_list, encoding='latin-1')
+    ds2 = pd.read_csv('dataset4.csv', usecols=col_list, encoding='latin-1')
     
     #picking english movies made in USA & UK 
-    ds4 = ds4[(ds4['country'] == 'USA') | (ds4['language'] == 'English') | (ds4['country'] == 'UK')]
+    ds2 = ds2[(ds2['country'] == 'USA') | (ds2['language'] == 'English') | (ds2['country'] == 'UK')]
     
     #getting IMDb ids from a http link
-    ds4['movie_imdb_link'] = ds4['movie_imdb_link'].str.split('/').str[4]
+    ds2['movie_imdb_link'] = ds2['movie_imdb_link'].str.split('/').str[4]
     
     #renaming the columns
-    ds4.rename(columns= {'movie_imdb_link': 'id','movie_title': 'title', 'title_year': 'year', 'genres': 'genre', 'duration': 'runtime', 'director_name': 'director', 'actor_1_name': 'actor', 'gross': 'revenue', 'imdb_score': 'ratings', 'num_voted_users': 'num_votes'}, inplace = True)
+    ds2.rename(columns= {'movie_imdb_link': 'id','movie_title': 'title', 'title_year': 'year', 'genres': 'genre', 'duration': 'runtime', 'director_name': 'director', 'actor_1_name': 'actor', 'gross': 'revenue', 'imdb_score': 'ratings', 'num_voted_users': 'num_votes'}, inplace = True)
 
-    del ds4['country']
-    del ds4['language']
+    del ds2['country']
+    del ds2['language']
 
-    return ds4
+    return ds2
 
 
 
 if __name__ == '__main__':
     ds1 = readDataset1()
-    ds3 = readDataset4()
+    ds2 = readDataset2()
 
     #combining both the datasets
-    data = pd.concat([ds1, ds3])
+    data = pd.concat([ds1, ds2])
     
 #******************** Data Preprocessing *****************************************************************
     
-    
+    #Convert all years to numeric values
     data['year'] = pd.to_numeric(data['year'], errors = 'coerce')
     
+    #Remove null values
     data = data[data['year'].notna()]
 
     data['year'] = data['year'].astype(int)
 
+    #Remove special characters from movie titles
     data['title'] = data["title"].apply(lambda x: ''.join([" " if ord(i) < 32 or ord(i) > 126 else i for i in x]))
     
     #replacing characters like , $ and alphabets(INR, EUR etc.) with ''
@@ -92,9 +87,11 @@ if __name__ == '__main__':
     data['revenue'] = data['revenue'].str.replace('$', '')
     data['revenue'] = data['revenue'].str.replace(r'[^\d]+', '')
 
+    #Convert budget & revenue to float type
     data['budget'] = pd.to_numeric(data['budget'], errors = 'coerce')
     data['revenue'] = pd.to_numeric(data['revenue'], errors = 'coerce')
 
+    #Set missing values in revenue & budget to 0
     data['budget'].replace(np.nan, 0, inplace = True)
     data['revenue'].replace(np.nan, 0, inplace = True)
 
@@ -153,6 +150,7 @@ if __name__ == '__main__':
     
     dataFiltered['roi']= dataFiltered['revenue']/dataFiltered['budget']
 
+    #Prepare test set and remove outliers based on quantile ranges. Remove < .05 and > .95
     y = dataFiltered['roi']
     dataFiltered = dataFiltered[y.between(y.quantile(.05), y.quantile(.95))]
 
@@ -164,7 +162,7 @@ if __name__ == '__main__':
     
 #************************1. Genres********************************************************
 
-    #sum roi for each genre     
+    #Create a dict with genre and average roi for each specific genre    
     genre = {}
     for i, j in dataFiltered.iterrows():
         movieGenres = j['genre'].split(',')
@@ -191,12 +189,12 @@ if __name__ == '__main__':
         genres.append(key)
         avg_rois.append(value[0]/value[1])
 
-#Plotting the graph to check if roi is dependent on genre      
+#Plotting a graph to look at most profitable genres and whether genre has a huge correlation to ROI      
 #    plt.figure(figsize=(20, 10))
 #    plt.bar(genres, avg_rois)
 #    plt.show()
         
-    #calculate genre score   
+    #calculate genre score based on budget and average ROI 
     genre_score = []
     
     for i, j in dataFiltered.iterrows():
@@ -218,7 +216,7 @@ if __name__ == '__main__':
         
 #*************************2. Directors*******************************************************************
     
-    #sum roi for each director  
+    #Create dict with directors and their average ROIs
     directors = {}
     for i, j in dataFiltered.iterrows():
         movieDirectors = j['director'].split(',')
@@ -235,7 +233,7 @@ if __name__ == '__main__':
                 directors[director].append(j['budget'])
                 
 
-    #pick directors that have made atleast 3 movies            
+    #Only pick directors that have made multiple movies           
     scores1 = []
     for key, value in list(directors.items()):
         if value[1] < 2:
@@ -245,7 +243,8 @@ if __name__ == '__main__':
     for key, value in directors.items():
         l = [value[0]/value[1], value[2]]
         directors[key] = l
-        
+    
+    #Sort directors by average ROI and create a plot of the directors with top 30 ROI movies
     directors = dict(sorted(directors.items(), key=lambda item: item[1], reverse=True))
     
     iterator = iter(directors.items())
@@ -269,7 +268,8 @@ if __name__ == '__main__':
 #        plt.annotate(d, (avg_budget[i], roi[i]))
         
 
-    #calculate director score
+    #calculate director score based on the ratio of budget and ROI
+    #Same average ROI with lesser budget --> More valuable director
     director_score = []
     
     for i, j in dataFiltered.iterrows():
@@ -299,7 +299,7 @@ if __name__ == '__main__':
     
     #dataFiltered = dataFiltered.drop(52416)  
   
-    #find roi for each main actor
+    #Create dict with actors and their average ROIs
     actors = {}
     for i, j in dataFiltered.iterrows():
         movieActors = j['actor'].split(',')
@@ -316,7 +316,7 @@ if __name__ == '__main__':
             actors[actor].append(j['budget'])
       
         
-    #pick actors who have been in atleast 11 movies
+    #Pick actors who have been in atleast 11 movies
     scores10 = []
     for key, value in list(actors.items()):
         if value[1] < 10:
@@ -326,7 +326,8 @@ if __name__ == '__main__':
     for key, value in actors.items():
         l = [value[0]/value[1], value[2]]
         actors[key] = l
-        
+    
+    #Sort actors by average ROI and create a plot of the actors with top 30 ROI movies
     actors = dict(sorted(actors.items(), key=lambda item: item[1], reverse=True))
     
     iterator = iter(actors.items())
@@ -349,7 +350,8 @@ if __name__ == '__main__':
 #    for i, d in enumerate(acts):
 #        plt.annotate(d, (avg_budget[i], roi[i]))
     
-    #calculate actor score
+    #calculate actor score based on the ratio of budget and ROI
+    #Same average ROI with lesser budget --> More valuable actor
     actor_scores = []
     
     for i, j in dataFiltered.iterrows():
@@ -367,7 +369,9 @@ if __name__ == '__main__':
     dataFiltered['actor_score'] = actor_scores
 
 #*************************3. ratings***************************************
-  
+    #imdb movie ratings were found to not have high correlation to ROI
+
+
 #    ratings = {}
 #    for i, j in dataFiltered.iterrows():
 #        r = j['ratings']
@@ -395,21 +399,25 @@ if __name__ == '__main__':
     ds = dataFiltered[['ratings','budget','revenue','roi','genre_score','director_score',
                    'actor_score','runtime','num_votes','year']]
     
-    #Split roi into groups 0-1 -> bad(0) & greater than 1- 3 -> OK(1) & greater than 3-8->Good(2) 
-    #& greater than 8 - 13 ->Excellent(3)
+    #Creating buckets and splitting ROI into groups (Discretization)
+    #ROI Score: 0 - 1: Loss making movie: BAD
+    #ROI Score: 1 - 3: Small profit: OK
+    #ROI Score: 3 - 8: Good profits: GOOD
+    #ROI Score > 8: Very profitable movie: EXCELLENT
     roi_class = []
     for i, j in ds.iterrows():
         if j['roi'] > 0 and j['roi'] <= 1:
             roi_class.append(0)
         elif j['roi'] > 1 and j['roi'] <= 3:
             roi_class.append(1)
-        elif j['roi']>3 and j['roi']<= 8:
+        elif j['roi'] > 3 and j['roi'] <= 8:
             roi_class.append(2)
         else:
             roi_class.append(3)
             
     ds['roi_class'] = roi_class
     
+    #Remove ROI and revenue from the training and testing sets
     del ds['roi']
     del ds['revenue']
     
@@ -483,11 +491,14 @@ if __name__ == '__main__':
 #    imp_features = pd.DataFrame({'Importance':classifier.feature_importances_, 'Features': f })
 #    print(imp_features)
 
-
+#****************Create list of reliable actors and directors*************************************************
    
     #List of top 50 actors that increase ROI
+    #Based on actor scores
     dataFiltered.sort_values('actor_score', inplace = True, ascending = False)
     reliable_actors = dataFiltered[['actor','actor_score', 'roi', 'budget']].copy()
+
+    #Prune the large image to get the more valuable actors
     reliable_actors = reliable_actors[(reliable_actors['budget'] < 15000000) & (reliable_actors['roi'] > 7)]
     rel_actors = {}
     count = 0
@@ -508,8 +519,11 @@ if __name__ == '__main__':
             break
         
     #List of top 50 directors that increase ROI
+    #Based on director scores
     dataFiltered.sort_values('director_score', inplace = True, ascending = False)
     reliable_directors = dataFiltered[['director','director_score', 'roi', 'budget']].copy()
+
+    #Prune the large image to get the more valuable directors 
     reliable_directors = reliable_directors[(reliable_directors['budget'] < 17000000) & (reliable_directors['roi'] > 11)]
     rel_dirs = {}
     count = 0
