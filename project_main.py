@@ -551,9 +551,8 @@ if __name__ == '__main__':
         a_roi.append(value[0])
         a_budget.append(value[1])
     
-    
-    plt.figure(figsize=(20, 20))
-    plt.scatter(a_roi, a_budget)
+#    plt.figure(figsize=(20, 20))
+#    plt.scatter(a_roi, a_budget)
     
     for i, d in enumerate(a):
         plt.annotate(d, (a_roi[i], a_budget[i]))
@@ -567,10 +566,28 @@ if __name__ == '__main__':
         d_budget.append(value[1])
     
     
-    plt.figure(figsize=(20, 20))
-    plt.scatter(d_roi, d_budget)
+#    plt.figure(figsize=(20, 20))
+#    plt.scatter(d_roi, d_budget)
     
     
     for i, d in enumerate(dirs):
         plt.annotate(d, (d_roi[i], d_budget[i]))
+        
+        
+        
+o = open('top_50.txt','w')
+
+o.write("Top 50 Directors and Actors that increase ROI with less budget \n \n")
+
+o.write("\n \n Directors \n\n")
+for i in range(len(dirs)):
+    o.write(dirs[i]+"\n")
+
+
+o.write("\n \n Actors \n\n")
+for i in range(len(a)):
+    o.write(a[i]+"\n")
+
+
+o.close()
     
